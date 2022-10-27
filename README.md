@@ -18,3 +18,6 @@ https://www.d3indepth.com/geographic/
 https://geojson.io/#map=12/35.9202/-79.0691
 https://www.pluralsight.com/guides/maps-made-easy-with-d3
 https://observablehq.com/@mbostock/walmarts-growth  (time-series movement)
+
+
+Crime Schema: https://www.researchgate.net/publication/281842440_A_new_criminal_records_database_for_large_scale_analysis_of_policy_and_behavior
