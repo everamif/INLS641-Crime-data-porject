@@ -1,22 +1,25 @@
-class AMmap{
+class AMmap {
     constructor(container_id) {
-        this.arrest_url = "../data/Police_Arrests_Made.csv";
+        this.arrest_url = "../data/clean_ch_arrests.csv";
         this.container_id = container_id
-        this.loadAndPrepare();
-        this.height = 1000;
-        this.width = 1000;
-
+        this.cata_color = d3.scaleOrdinal(d3.schemeCategory10);
+        this.map_render()
+        this.loadAndPrepare()
+        this.height = 1500;
+        this.width = 1500;
         // Select the SVG element for the map.
         this.svg = d3.select("#" + this.container_id);
     }
-    loadAndPrepare(){
+
+    loadAndPrepare(_subs){
         // Load arrest made data.
-        d3.csv(this.arrest_url, d => {
+       d3.csv(this.arrest_url, d => {
             return {
                 longitude: d.X,
                 latitude: d.Y,
                 id: d.Incident_Id,
                 charges: d.Primary_Charge,
+                charge_cat: d.Category,
                 street: d.Street,
                 city: d.City,
                 date: d.Date_of_Arrest,
@@ -27,15 +30,34 @@ class AMmap{
                 type: d.Type_of_Arrest,
                 drug_or_alcohol: d.Drugs_or_Alcohol_Present,
             }
-        }).then(data=>{
+        }).then(data => {
             //process data
-            console.log("success")
-        }).catch(error=>{
+            let min_longitude = d3.min(data, d=>d.longitude);
+            let min_latitude = d3.min(data, d=>d.latitude);
+            let max_longitude = d3.max(data, d=>d.longitude);
+            let max_latitude = d3.max(data, d=>d.latitude);
+
+           // set up x and y
+           let x = d3.scaleLinear()
+               .domain([min_longitude, max_longitude])
+               .range([0,this.width]);
+           let y = d3.scaleLinear()
+               .domain([min_latitude, max_latitude])
+               .range([this.height,0]);
+
+           //filtering data
+            let data_subs = data
+            if(_subs!="All"){
+                data_subs = data.filter(d=>d.charge_cat == _subs)
+            }
+            this.render(data_subs,x,y)
+        }).catch(error => {
             console.log("Error when loading or processing the CSV data.")
             console.log(error);
         })
     }
-    render(map_type) {
+
+    map_render(){
         // load map
         d3.json("../data/chapel_hill_all_streets.geojson", d => d).then(geo_json_data => {
             // Define the projection.
@@ -89,4 +111,26 @@ class AMmap{
         })
     }
 
+    render(data_subs,x,y) {
+
+       console.log(data_subs)
+        let circles = this.svg.selectAll("circle").data(data_subs, d => d.state);
+        circles.join(
+            enter => enter.append("circle")
+                .attr("r", 0)
+                .attr("cx", d => x(d.longitude))
+                .attr("cy", d => y(d.latitude))
+                .style("fill", d => this.cata_color(d.charge_cat))
+                // Animate the radius to have the circles slowly grow to full size.
+                .transition()
+                .delay(500*!circles.exit().empty())
+                .duration(500)
+                .attr("r", 5),
+
+            // There is no modification required for updated circles. They can remain unchanged...
+            update => update,
+
+            exit => exit.transition().duration(500).attr("r", 0).remove()
+        )
+    }
 }
